@@ -1,0 +1,37 @@
+OpenAI
+Used to call the AI model
+
+Core of your project
+python-dotenv (IMPORTANT 🔥)
+Helps you hide your API key
+Never hardcode API keys in code (CISO will notice this mistake)
+Add .env file (VERY IMPORTANT)
+
+Create a file:
+
+.env
+
+Inside it:
+
+OPENAI_API_KEY=your_api_key_here
+Update your Python code (secure way)
+
+Replace this :
+
+client = OpenAI(api_key="YOUR_API_KEY")
+
+With this :
+
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+How to install dependencies
+
+Run this in terminal:
+
+pip install -r requirements.txt
+
