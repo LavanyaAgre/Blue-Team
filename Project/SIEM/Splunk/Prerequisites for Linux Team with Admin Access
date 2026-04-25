@@ -1,0 +1,107 @@
+Steps to create AWS EC2 Instance
+1. Prerequisites for Linux Team with Admin Access
+Install Required Packages
+Switch to root user: sudo su
+Run the commands:
+sudo su
+
+yum install net-tools
+yum install ntpstat
+yum install wget
+
+Set Hostname
+Use the command:
+hostnamectl set-hostname <COMPONENT_NAME>
+
+Create Splunk User and Directory
+Run the following commands:
+useradd splunk
+groupadd splunk
+mkdir /opt/splunk
+chown -R splunk:splunk /opt/splunk
+
+Disable Transparent Huge Pages (THP)
+Steps to Disable THP:
+Switch to root user and go to /etc/init.d/ directory:
+cd /etc/init.d/
+
+Create a script to disable THP:
+vi disable_thp
+
+Paste the following code in the file:
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          disable-thp
+# Required-Start:    $local_fs
+# Default-Start:     2 3 4 5
+### END INIT INFO
+
+case $1 in
+ start)
+   if [ -d /sys/kernel/mm/transparent_hugepage ]; then
+     thp_path=/sys/kernel/mm/transparent_hugepage
+   elif [ -d /sys/kernel/mm/redhat_transparent_hugepage ]; then
+     thp_path=/sys/kernel/mm/redhat_transparent_hugepage
+   else
+     return 0
+   fi
+
+   echo 'never' > ${thp_path}/enabled
+   echo 'never' > ${thp_path}/defrag
+
+   if [[ $(cat ${thp_path}/khugepaged/defrag) =~ ^[0-1]+$ ]]; then
+     echo 0  > ${thp_path}/khugepaged/defrag
+   else
+     echo 'no' > ${thp_path}/khugepaged/defrag
+   fi
+   ;;
+esac
+
+Save the file: Press Esc, type :wq!
+Verify the file content:
+cat disable_thp
+
+Add execute permission to the file:
+chmod 755 disable_thp
+
+Add the script to system startup:
+sudo chkconfig --add disable_thp
+
+Increase ulimit
+Open the limits.conf file:
+vi /etc/security/limits.conf
+
+Add the following lines at the end of the file:
+* soft nofile 64000
+* hard nofile unlimited
+* soft nproc 16000
+* hard nproc unlimited
+* soft data 8000000
+* hard data unlimited
+* soft fsize unlimited
+* hard fsize unlimited
+
+Save the file: Press Esc, type :wq!
+Reboot the server:
+reboot
+
+Check the ulimit values:
+ulimit -a splunk
+
+or
+sudo cat /etc/security/limits.conf
+
+Verify THP is Disabled
+Run the commands:
+sudo cat /sys/kernel/mm/transparent_hugepage/enabled
+sudo cat /sys/kernel/mm/transparent_hugepage/defrag
+
+Look for [never] in the output.
+After Splunk Installation,
+Enable Bootstart for Splunk
+Switch to root user:
+sudo su
+
+Enable Splunk boot start:
+/opt/splunk/bin/splunk enable boot-start -user splunk
+
