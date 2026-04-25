@@ -1,0 +1,64 @@
+AWS EC2 Linux Setup (Clean Table Format)
+Install Required Packages
+Step	Command
+Switch to root	sudo su
+Install net-tools	yum install net-tools
+Install ntpstat	yum install ntpstat
+Install wget	yum install wget
+Set Hostname
+Step	Command
+Set hostname	hostnamectl set-hostname <COMPONENT_NAME>
+Create Splunk User and Directory
+Step	Command
+Create user	useradd splunk
+Create group	groupadd splunk
+Create directory	mkdir /opt/splunk
+Set ownership	chown -R splunk:splunk /opt/splunk
+Disable Transparent Huge Pages (THP)
+Navigation & Setup
+Step	Command
+Go to directory	cd /etc/init.d/
+Create script	vi disable_thp
+Script Content
+File	Content
+disable_thp	bash<br>#!/bin/bash<br>### BEGIN INIT INFO<br># Provides: disable-thp<br># Required-Start: $local_fs<br># Default-Start: 2 3 4 5<br>### END INIT INFO<br><br>case $1 in<br>start)<br> if test -f /sys/kernel/mm/transparent_hugepage/enabled; then<br> thp_path=/sys/kernel/mm/transparent_hugepage<br> elif test -f /sys/kernel/mm/redhat_transparent_hugepage/enabled; then<br> thp_path=/sys/kernel/mm/redhat_transparent_hugepage<br> else<br> return 0<br> fi<br><br> echo 'never' > ${thp_path}/enabled<br> echo 'never' > ${thp_path}/defrag<br><br> if [[ $(cat ${thp_path}/khugepaged/defrag) =~ ^[0-1]+$ ]]; then<br> echo 0 > ${thp_path}/khugepaged/defrag<br> else<br> echo 'no' > ${thp_path}/khugepaged/defrag<br> fi<br> ;;<br>esac
+Permissions & Startup
+Step	Command
+Verify file	cat disable_thp
+Add permission	chmod 755 disable_thp
+Add to startup	chkconfig --add disable_thp
+Increase ulimit
+Edit Config
+Step	Command
+Open file	vi /etc/security/limits.conf
+Add Values
+Setting	Value
+soft nofile	64000
+hard nofile	unlimited
+soft nproc	16000
+hard nproc	unlimited
+soft data	8000000
+hard data	unlimited
+soft fsize	unlimited
+hard fsize	unlimited
+Apply Changes
+Step	Command
+Save file	:wq!
+Reboot	reboot
+Verify	ulimit -a splunk
+Alternate verify	cat /etc/security/limits.conf
+Verify THP is Disabled
+Step	Command
+Check enabled	cat /sys/kernel/mm/transparent_hugepage/enabled
+Check defrag	cat /sys/kernel/mm/transparent_hugepage/defrag
+Expected output	never
+Enable Splunk Bootstart
+Step	Command
+Switch user	sudo su
+Enable bootstart	/opt/splunk/bin/splunk enable boot-start -user splunk
+Honest Notes (Don’t Ignore)
+Issue	Reality
+OS compatibility	Works for RHEL/CentOS, not Kali/Ubuntu directly
+chkconfig	Legacy (use systemctl in modern systems)
+THP method	Outdated approach
+Production use	Needs tuning
